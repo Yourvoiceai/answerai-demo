@@ -279,9 +279,10 @@ app.get('/', (req, res) => {
   });
 });
 
-// Start server
-server.listen(PORT, () => {
-  logger.info(`YourVoiceAI Realtime Server running on port ${PORT}`);
-  logger.info(`Health check: http://localhost:${PORT}/health`);
-  logger.info(`Voice webhook: http://localhost:${PORT}/webhook/voice`);
+// Start server - bind to all interfaces for Railway
+const HOST = process.env.HOST || '0.0.0.0';
+server.listen(PORT, HOST, () => {
+  logger.info(`YourVoiceAI Realtime Server running on ${HOST}:${PORT}`);
+  logger.info(`Health check: http://${HOST}:${PORT}/health`);
+  logger.info(`Voice webhook: http://${HOST}:${PORT}/webhook/voice`);
 });
