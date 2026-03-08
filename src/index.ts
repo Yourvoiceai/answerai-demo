@@ -1,7 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import expressWs from 'express-ws';
-import webhookRoutes from './routes/webhook-simple';
+import webhookRoutes from './routes/webhook-openai';
 import { logger } from './utils/logger';
 
 // Load environment variables
