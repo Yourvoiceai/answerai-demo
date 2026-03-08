@@ -280,9 +280,10 @@ app.get('/', (req, res) => {
 });
 
 // Start server - bind to all interfaces for Railway
+const PORT_NUM = parseInt(PORT as string, 10);
 const HOST = process.env.HOST || '0.0.0.0';
-server.listen(PORT, HOST, () => {
-  logger.info(`YourVoiceAI Realtime Server running on ${HOST}:${PORT}`);
-  logger.info(`Health check: http://${HOST}:${PORT}/health`);
-  logger.info(`Voice webhook: http://${HOST}:${PORT}/webhook/voice`);
+server.listen(PORT_NUM, HOST, () => {
+  logger.info(`YourVoiceAI Realtime Server running on ${HOST}:${PORT_NUM}`);
+  logger.info(`Health check: http://${HOST}:${PORT_NUM}/health`);
+  logger.info(`Voice webhook: http://${HOST}:${PORT_NUM}/webhook/voice`);
 });
