@@ -49,7 +49,7 @@ router.post('/voice', async (req, res) => {
     });
 
     // Greeting
-    const greeting = "Thanks for calling YourVoiceAI! I'm your AI assistant. How can I help you today?";
+    const greeting = "Hi! This is YourVoiceAI. I'm an AI assistant here to help. What can I do for you today?";
     
     res.type('text/xml');
     res.send(generateVoiceResponse(greeting, true));
