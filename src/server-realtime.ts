@@ -57,7 +57,7 @@ Your job:
 4. For non-urgent stuff, take the details and tell them when to expect a callback
 
 Speak naturally — use contractions, pause like a real person, and keep it conversational. Not robotic.`,
-          voice: 'nova',
+          voice: 'alloy',
           input_audio_format: 'g711_ulaw',
           output_audio_format: 'g711_ulaw',
           turn_detection: {
