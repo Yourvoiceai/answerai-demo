@@ -11,7 +11,68 @@ const router = Router();
 // In-memory session store
 const sessions = new Map<string, CallSession>();
 
+// Pre-generated audio cache
+const audioCache = new Map<string, string>();
+
+// Common responses to pre-generate
+const COMMON_RESPONSES = [
+  "Hi! This is YourVoiceAI. I'm an AI assistant here to help. What can I do for you today?",
+  "I can help with that. What's your name and the best number to reach you?",
+  "Got it. And what service do you need?",
+  "Thanks for that. Is this an emergency or can it wait?",
+  "Perfect. Someone will call you back within 24 hours. Is there anything else?",
+  "I didn't catch that. Could you repeat?",
+  "Thanks for calling YourVoiceAI. Have a great day!"
+];
+
 const twilioService = new TwilioService();
+
+// Pre-generate common audio files on startup
+async function pregenerateCommonAudio(): Promise<void> {
+  logger.info('Pre-generating common audio responses...');
+  
+  for (const text of COMMON_RESPONSES) {
+    try {
+      const hash = Buffer.from(text).toString('base64').substring(0, 16);
+      const filename = `cached-${hash}.mp3`;
+      const filepath = path.join('/tmp', filename);
+      
+      if (!fs.existsSync(filepath)) {
+        const audioBuffer = await generateSpeech(text);
+        fs.writeFileSync(filepath, audioBuffer);
+        logger.info(`Generated cached audio: ${filename}`);
+      }
+      
+      audioCache.set(text, filename);
+    } catch (error) {
+      logger.error('Failed to pre-generate audio', { text, error });
+    }
+  }
+  
+  logger.info('Audio pre-generation complete');
+}
+
+// Get cached audio or generate new
+async function getAudioForText(text: string, callSid: string): Promise<string> {
+  // Check cache first
+  if (audioCache.has(text)) {
+    const cachedFile = audioCache.get(text)!;
+    const cachedPath = path.join('/tmp', cachedFile);
+    if (fs.existsSync(cachedPath)) {
+      logger.info('Using cached audio', { text: text.substring(0, 50) });
+      return cachedFile;
+    }
+  }
+  
+  // Generate new audio
+  logger.info('Generating new audio', { text: text.substring(0, 50) });
+  const audioBuffer = await generateSpeech(text);
+  const filename = `response-${callSid}-${Date.now()}.mp3`;
+  const filepath = path.join('/tmp', filename);
+  fs.writeFileSync(filepath, audioBuffer);
+  
+  return filename;
+}
 
 // OpenAI TTS function
 async function generateSpeech(text: string): Promise<Buffer> {
@@ -108,14 +169,9 @@ router.post('/voice', async (req, res) => {
     };
     sessions.set(CallSid, session);
 
-    // Generate greeting with OpenAI TTS
+    // Use cached greeting
     const greeting = "Hi! This is YourVoiceAI. I'm an AI assistant here to help. What can I do for you today?";
-    const audioBuffer = await generateSpeech(greeting);
-    
-    // Save audio file temporarily
-    const audioFileName = `greeting-${CallSid}.mp3`;
-    const audioPath = path.join('/tmp', audioFileName);
-    fs.writeFileSync(audioPath, audioBuffer);
+    const audioFileName = await getAudioForText(greeting, CallSid);
 
     // Return TwiML with Gather
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -170,11 +226,8 @@ router.post('/voice/respond', async (req, res) => {
       aiResponse = "I didn't catch that. Could you tell me what service you need?";
     }
     
-    // Generate speech with OpenAI TTS
-    const audioBuffer = await generateSpeech(aiResponse);
-    const audioFileName = `response-${callSid}-${Date.now()}.mp3`;
-    const audioPath = path.join('/tmp', audioFileName);
-    fs.writeFileSync(audioPath, audioBuffer);
+    // Get cached or generate new audio
+    const audioFileName = await getAudioForText(aiResponse, callSid);
     
     // Return TwiML
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -202,6 +255,11 @@ router.post('/voice/respond', async (req, res) => {
 // Health check
 router.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '1.0.0', voice: 'openai-alloy' });
+});
+
+// Pre-generate audio on module load
+pregenerateCommonAudio().catch(error => {
+  logger.error('Failed to pre-generate audio on startup', error);
 });
 
 export default router;
